@@ -76,3 +76,45 @@ flashing or debugging.
 ## Running system
 
 [http://wled-desk.local/](http://wled-desk.local/)
+
+## CLI
+
+The dependency-free `desk-lights` command controls WLED over its JSON API:
+
+```sh
+./desk-lights pink
+./desk-lights blue
+./desk-lights pulse
+./desk-lights off
+./desk-lights status
+```
+
+`pulse` applies WLED's Breathe effect while keeping the current colour. You can
+also set the brightness (WLED uses a 1–255 scale):
+
+```sh
+./desk-lights pink --brightness 180
+```
+
+To make the command available everywhere, copy it to a directory on your
+`PATH`, for example:
+
+```sh
+mkdir -p ~/.local/bin
+install -m 755 desk-lights ~/.local/bin/desk-lights
+```
+
+It connects to `wled-desk.local` by default. Override that for a controller
+with a different hostname or IP address:
+
+```sh
+DESK_LIGHTS_HOST=192.168.1.42 desk-lights blue
+# or
+desk-lights blue --host 192.168.1.42
+```
+
+Run the tests with:
+
+```sh
+python3 -m unittest discover -s tests
+```
