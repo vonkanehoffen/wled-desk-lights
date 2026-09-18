@@ -82,6 +82,7 @@ flashing or debugging.
 The dependency-free `desk-lights` command controls WLED over its JSON API:
 
 ```sh
+./desk-lights off
 ./desk-lights normal
 ./desk-lights loading
 ./desk-lights error
