@@ -4,7 +4,7 @@ ESP32 powered under-desk LED lighting
 
 ## Kit
 
-[BTF-LIGHTING WS2812B 16.4ft 5m 60LEDs/Pixels/m 300LEDs Black PCB IP30](https://www.amazon.co.uk/dp/B01CDTEJBG) - cut to 1.5m
+[BTF-LIGHTING WS2812B 16.4ft 5m 60LEDs/Pixels/m 300LEDs Black PCB IP30](https://www.amazon.co.uk/dp/B01CDTEJBG) - cut to 93 LEDs (about 1.55m)
 
 [BTF-LIGHTING 5V 8A/40W UK PSU UKCA for WS2812B/SK6812LED Strip & CCTV](https://www.amazon.co.uk/dp/B0GDQTW28D)
 
@@ -20,7 +20,7 @@ It doesn't need any auth layer.
 
 ## Wiring
 
-The strip is cut to 1.5m, giving 90 LEDs at 60 LEDs/m. Power the ESP32 and
+The strip is cut to 93 LEDs (about 1.55m at 60 LEDs/m). Power the ESP32 and
 strip in parallel from the 5V supply; do not pass the strip's power through
 the ESP32 board.
 
@@ -66,7 +66,7 @@ flashing or debugging.
 
 - LED type: `WS281x`
 - GPIO: `16`
-- Length: `90`
+- Length: `93`
 - Colour order: `GRB`
 - Automatic brightness limiter: enabled
 - Maximum current: `4000 mA`
@@ -75,4 +75,4 @@ flashing or debugging.
 
 ## Running system
 
-[http://wled-desk.local/`](http://wled-desk.local/)
+[http://wled-desk.local/](http://wled-desk.local/)
