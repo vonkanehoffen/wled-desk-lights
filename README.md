@@ -108,3 +108,31 @@ DESK_LIGHTS_HOST=192.168.1.42 desk-lights normal
 # or
 desk-lights normal --host 192.168.1.42
 ```
+
+## Display sleep and wake automation on macOS
+
+`desk-lights-watcher.swift` uses macOS workspace notifications to turn the
+lights off when the displays or system sleep (including closing a MacBook lid)
+and restore the `normal` state when they wake. It does not monitor keyboard or
+pointer input and does not require Input Monitoring or Accessibility
+permission.
+
+Compile the watcher next to the installed `desk-lights` command, install its
+LaunchAgent, and start it:
+
+```sh
+swiftc desk-lights-watcher.swift -o ~/.local/bin/desk-lights-watcher
+cp com.vonkanehoffen.desk-lights-watcher.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.vonkanehoffen.desk-lights-watcher.plist
+```
+
+The LaunchAgent starts automatically at login. Its output is written to
+`~/Library/Logs/desk-lights-watcher.log`.
+
+To stop and remove it:
+
+```sh
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.vonkanehoffen.desk-lights-watcher.plist
+rm ~/Library/LaunchAgents/com.vonkanehoffen.desk-lights-watcher.plist
+rm ~/.local/bin/desk-lights-watcher
+```
