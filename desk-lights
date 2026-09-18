@@ -1,128 +1,71 @@
 #!/usr/bin/env python3
-"""Small, dependency-free CLI for the desk WLED controller."""
-
-from __future__ import annotations
+"""Set the desk WLED controller to a named state."""
 
 import argparse
 import json
 import os
 import sys
-from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
 DEFAULT_HOST = "wled-desk.local"
-COLORS = {
-    "pink": [255, 20, 147],
-    "blue": [0, 122, 255],
+
+# To add a state, paste its WLED web UI "API command" block here and give it a name.
+API_COMMANDS = {
+    "normal": r'''{"on":true,"bri":128,"transition":7,"bs":0,"mainseg":0,"seg":[{"id":0,"start":0,"stop":93,"grp":1,"spc":0,"of":0,"on":true,"frz":false,"bri":255,"cct":127,"set":0,"lc":1,"n":"","col":[[255,214,89],[0,0,0],[0,0,0]],"fx":0,"sx":128,"ix":128,"pal":0,"c1":128,"c2":128,"c3":16,"sel":true,"rev":false,"mi":false,"o1":false,"o2":false,"o3":false,"si":0,"m12":0,"bm":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0}]}''',
+    "loading": r'''{"on":true,"bri":128,"transition":7,"bs":0,"mainseg":0,"seg":[{"id":0,"start":0,"stop":93,"grp":1,"spc":0,"of":0,"on":true,"frz":false,"bri":255,"cct":127,"set":0,"lc":1,"n":"","col":[[92,160,255],[0,0,0],[0,0,0]],"fx":2,"sx":128,"ix":128,"pal":0,"c1":128,"c2":128,"c3":16,"sel":true,"rev":false,"mi":false,"o1":false,"o2":false,"o3":false,"si":0,"m12":0,"bm":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0}]}''',
+    "error": r'''{"on":true,"bri":128,"transition":7,"bs":0,"mainseg":0,"seg":[{"id":0,"start":0,"stop":93,"grp":1,"spc":0,"of":0,"on":true,"frz":false,"bri":255,"cct":127,"set":0,"lc":1,"n":"","col":[[255,13,17],[0,0,0],[0,0,0]],"fx":0,"sx":128,"ix":128,"pal":0,"c1":128,"c2":128,"c3":16,"sel":true,"rev":false,"mi":false,"o1":false,"o2":false,"o3":false,"si":0,"m12":0,"bm":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0},{"stop":0}]}''',
 }
 
 
-class WLEDError(RuntimeError):
-    """Raised when the WLED controller cannot complete a request."""
-
-
-def controller_url(host: str) -> str:
+def controller_url(host):
     host = host.strip().rstrip("/")
     if not host:
-        raise WLEDError("the controller hostname cannot be empty")
+        raise ValueError("the controller hostname cannot be empty")
     if not host.startswith(("http://", "https://")):
         host = f"http://{host}"
     return host
 
 
-def request_json(host: str, path: str, payload: dict[str, Any] | None = None) -> Any:
-    data = None if payload is None else json.dumps(payload).encode("utf-8")
+def set_state(host, command):
     request = Request(
-        f"{controller_url(host)}{path}",
-        data=data,
+        f"{controller_url(host)}/json/state",
+        data=command.encode("utf-8"),
         headers={"Content-Type": "application/json"},
-        method="GET" if data is None else "POST",
+        method="POST",
     )
-    try:
-        with urlopen(request, timeout=3) as response:
-            return json.load(response)
-    except HTTPError as error:
-        raise WLEDError(f"controller returned HTTP {error.code}") from error
-    except URLError as error:
-        reason = getattr(error, "reason", error)
-        raise WLEDError(f"could not reach {host}: {reason}") from error
-    except (json.JSONDecodeError, TimeoutError) as error:
-        raise WLEDError(f"invalid or timed-out response from {host}") from error
+    with urlopen(request, timeout=3):
+        pass
 
 
-def state_payload(action: str, brightness: int | None) -> dict[str, Any]:
-    payload: dict[str, Any]
-    if action in COLORS:
-        payload = {
-            "on": True,
-            "seg": [{"id": 0, "fx": 0, "col": [COLORS[action]]}],
-        }
-    elif action == "pulse":
-        # WLED effect 2 is Breathe. Omitting `col` keeps the current colour.
-        payload = {"on": True, "seg": [{"id": 0, "fx": 2}]}
-    elif action == "on":
-        payload = {"on": True}
-    elif action == "off":
-        payload = {"on": False}
-    else:
-        raise ValueError(f"unsupported action: {action}")
-
-    if brightness is not None and action != "off":
-        payload["bri"] = brightness
-    return payload
-
-
-def describe_state(state: dict[str, Any]) -> str:
-    power = "on" if state.get("on") else "off"
-    brightness = state.get("bri", "unknown")
-    segments = state.get("seg") or []
-    effect = segments[0].get("fx") if segments else None
-    suffix = f", effect {effect}" if effect is not None else ""
-    return f"Desk lights: {power}, brightness {brightness}{suffix}"
-
-
-def parser() -> argparse.ArgumentParser:
-    result = argparse.ArgumentParser(
-        prog="desk-lights",
-        description="Control the WLED-powered desk lights.",
-    )
-    result.add_argument(
-        "action",
-        choices=[*COLORS, "pulse", "on", "off", "status"],
-        help="colour, effect, power action, or status",
-    )
-    result.add_argument(
+def main():
+    parser = argparse.ArgumentParser(description="Set the desk lights state.")
+    parser.add_argument("state", choices=API_COMMANDS)
+    parser.add_argument(
         "--host",
         default=os.environ.get("DESK_LIGHTS_HOST", DEFAULT_HOST),
         help=f"WLED hostname or URL (default: $DESK_LIGHTS_HOST or {DEFAULT_HOST})",
     )
-    result.add_argument(
-        "--brightness",
-        "-b",
-        type=int,
-        choices=range(1, 256),
-        metavar="1-255",
-        help="set brightness while applying the action",
-    )
-    return result
+    args = parser.parse_args()
 
-
-def main(argv: list[str] | None = None) -> int:
-    args = parser().parse_args(argv)
+    command = API_COMMANDS[args.state]
     try:
-        if args.action == "status":
-            print(describe_state(request_json(args.host, "/json/state")))
-            return 0
-
-        request_json(args.host, "/json/state", state_payload(args.action, args.brightness))
-        detail = f" at brightness {args.brightness}" if args.brightness else ""
-        print(f"Desk lights: {args.action}{detail}")
-        return 0
-    except WLEDError as error:
-        print(f"desk-lights: {error}", file=sys.stderr)
+        json.loads(command)  # Catch mistakes in newly pasted command blocks.
+        set_state(args.host, command)
+    except json.JSONDecodeError as error:
+        print(f"desk-lights: invalid API command for {args.state}: {error}", file=sys.stderr)
         return 1
+    except HTTPError as error:
+        print(f"desk-lights: controller returned HTTP {error.code}", file=sys.stderr)
+        return 1
+    except (URLError, TimeoutError, ValueError) as error:
+        reason = getattr(error, "reason", error)
+        print(f"desk-lights: could not reach {args.host}: {reason}", file=sys.stderr)
+        return 1
+
+    print(f"Desk lights: {args.state}")
+    return 0
 
 
 if __name__ == "__main__":
