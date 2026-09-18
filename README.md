@@ -43,13 +43,17 @@ flowchart LR
     DIN --- STRIP
 ```
 
-| From | To |
-| --- | --- |
-| PSU `+5V` | ESP32 expansion board `5V` |
-| PSU `GND` | ESP32 expansion board `GND` |
-| PSU `+5V` | LED strip `+5V` at the input end |
-| PSU `GND` | LED strip `GND` at the input end |
+
+
+
+| From         | To                                                             |
+| ------------ | -------------------------------------------------------------- |
+| PSU `+5V`    | ESP32 expansion board `5V`                                     |
+| PSU `GND`    | ESP32 expansion board `GND`                                    |
+| PSU `+5V`    | LED strip `+5V` at the input end                               |
+| PSU `GND`    | LED strip `GND` at the input end                               |
 | ESP32 `IO16` | LED strip `DIN`, preferably through a 330–470Ω series resistor |
+
 
 The PSU, ESP32 and strip must share a common ground. Connect data to the strip
 end marked `DIN`, with the strip's arrows pointing away from the controller.
@@ -67,6 +71,8 @@ flashing or debugging.
 - Automatic brightness limiter: enabled
 - Maximum current: `4000 mA`
 
+
+
 ## Running system
 
-[http://wled-desk.local/](http://wled-desk.local/)
+[http://wled-desk.local/`](http://wled-desk.local/)
